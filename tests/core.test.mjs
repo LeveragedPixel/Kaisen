@@ -34,6 +34,14 @@ test("provider routing can be inspected and changed without exposing secrets", a
   assert.equal(changed.preference, "auto");
 });
 
+test("Kaisen Brain exposes a provider-independent identity", async () => {
+  const result = await (await fetch(`http://127.0.0.1:${port}/api/brain`)).json();
+  assert.equal(result.status, "active");
+  assert.equal(result.brain.name, "Kaisen");
+  assert.equal(result.brain.owner, "Leveraged Pixel");
+  assert.ok(result.brain.principles.some(principle => principle.includes("interchangeable reasoning engines")));
+});
+
 test("chat creates and persists a conversation", async () => {
   const result = await (await fetch(`http://127.0.0.1:${port}/api/chat/message`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "Show me the market plan" }) })).json();
   assert.equal(result.conversation.messages.length, 2);
