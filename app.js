@@ -171,7 +171,7 @@ function moduleContent(route) {
   if (route === "Jobs") return `<section class="module-toolbar"><div class="segmented"><button class="active">BEST MATCH</button><button>NEWEST</button><button>SAVED</button></div><button class="outline-action">SCAN OPPORTUNITIES ↗</button></section><div class="data-stack">${moduleData.Jobs.map((job, index) => `<article class="panel job-row"><div class="fit-score"><strong>${job[0]}</strong><small>% FIT</small></div><div class="data-primary"><span>${index === 0 ? "TOP SIGNAL" : "QUALIFIED MATCH"}</span><h2>${job[1]}</h2><p>${job[2]} · ${job[5]}</p></div><div class="data-meta"><b>${job[3]}</b><small>${job[4]}</small></div><button class="save-signal" aria-label="Save ${job[1]}">◇</button></article>`).join("")}</div>`;
   if (route === "Markets") return `<div class="market-board">${moduleData.Markets.map(market => `<article class="panel market-tile"><header><span>${market[0]} / FUTURES</span><b class="${market[2].startsWith("+") ? "up" : "down"}">${market[2]}</b></header><h2>${market[1]}</h2><div class="market-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><dl><div><dt>SUPPORT</dt><dd>${market[3]}</dd></div><div><dt>RESISTANCE</dt><dd>${market[4]}</dd></div></dl><footer><i></i>${market[5]}</footer></article>`).join("")}</div><section class="panel intelligence-strip"><span class="panel-kicker">SESSION INTELLIGENCE</span><h2>Opening conditions favor patience above momentum.</h2><p>Preview levels are illustrative until a live market-data provider is connected. Kaisen will keep analysis and execution clearly separated.</p></section>`;
   if (route === "Inbox") return `<div class="inbox-layout"><section class="panel inbox-list"><header><span class="panel-kicker">PRIORITY QUEUE</span><button>MARK ALL REVIEWED</button></header>${moduleData.Inbox.map((message, index) => `<button class="inbox-item ${index === 0 ? "selected" : ""}" data-message="${index}"><span class="sender-mark">${message[0].split(" ").map(n => n[0]).join("").slice(0,2)}</span><span><b>${message[2]}</b><small>${message[0]} · ${message[1]}</small><p>${message[3]}</p></span><time>${message[4]}</time></button>`).join("")}</section><section class="panel message-preview"><span class="panel-kicker">SELECTED TRANSMISSION</span><h2 id="previewSubject">${moduleData.Inbox[0][2]}</h2><p id="previewBody">${moduleData.Inbox[0][3]}</p><textarea aria-label="Draft response" placeholder="Draft a response..."></textarea><button class="outline-action">PREPARE RESPONSE →</button></section></div>`;
-  if (route === "Projects") return `<div class="project-grid">${moduleData.Projects.map(project => `<article class="panel project-card"><header><span class="project-icon">▱</span><span>${project[2]}</span></header><h2>${project[0]}</h2><p>${project[1]}</p><div class="progress"><i style="width:${project[5]}%"></i></div><div class="project-status"><span><i></i>${project[3]}</span><b>${project[4]}</b></div></article>`).join("")}</div>`;
+  if (route === "Projects") return `<section id="githubProject" class="github-project"><div class="panel project-loading">CONTACTING GITHUB UPLINK...</div></section>`;
   return `<div class="automation-list">${moduleData.Automations.map((automation, index) => `<article class="panel automation-row"><span class="automation-icon">ϟ</span><div><h2>${automation[0]}</h2><p>${automation[1]}</p></div><b>${automation[2]}</b><button class="toggle active" data-automation="${index}" aria-label="Toggle ${automation[0]}" aria-pressed="true"><i></i></button></article>`).join("")}</div>`;
 }
 
@@ -183,6 +183,28 @@ function bindModuleActions(route) {
   document.querySelectorAll(".outline-action").forEach(button => button.addEventListener("click", () => notify(route === "Inbox" ? "Draft saved locally. Sending will require your approval." : "Preview refreshed. Connect a live provider when you are ready.")));
   const reviewAll = document.querySelector(".inbox-list>header button");
   if (reviewAll) reviewAll.addEventListener("click", () => { document.querySelectorAll(".inbox-item").forEach(item => item.classList.add("reviewed")); notify("Priority queue marked reviewed."); });
+}
+
+function relativeTime(value) {
+  const seconds = Math.max(1, Math.round((Date.now() - new Date(value).getTime()) / 1000));
+  if (seconds < 60) return `${seconds}S AGO`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}M AGO`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}H AGO`;
+  return `${Math.floor(seconds / 86400)}D AGO`;
+}
+
+async function hydrateProjects(token) {
+  const target = document.querySelector("#githubProject");
+  if (!target) return;
+  try {
+    const { snapshot, status } = await api("/api/integrations/github");
+    if (token !== renderToken || currentRoute !== "Projects") return;
+    const workflowState = snapshot.workflow?.conclusion || snapshot.workflow?.status || "not configured";
+    target.innerHTML = `<div class="project-live-grid"><article class="panel repo-overview"><header><div><span class="panel-kicker">LIVE GITHUB REPOSITORY</span><h2>${escapeHtml(snapshot.repository)}</h2></div><span class="live-chip"><i></i> LIVE · ${relativeTime(snapshot.fetchedAt)}</span></header><p>${escapeHtml(snapshot.description || "Kaisen intelligence system")}</p><div class="repo-metrics"><div><span>DEFAULT BRANCH</span><b>${escapeHtml(snapshot.branch)}</b></div><div><span>OPEN ISSUES</span><b>${snapshot.openIssues}</b></div><div><span>VISIBILITY</span><b>${escapeHtml(snapshot.visibility).toUpperCase()}</b></div><div><span>API MODE</span><b>${status.authenticated ? "AUTHENTICATED" : "PUBLIC READ"}</b></div></div><a href="${snapshot.url}" target="_blank" rel="noreferrer" class="outline-link">OPEN REPOSITORY ↗</a></article><article class="panel workflow-card"><span class="panel-kicker">BUILD INTELLIGENCE</span><div class="workflow-state ${workflowState === "success" ? "success" : "standby"}"><i></i><strong>${escapeHtml(workflowState).toUpperCase()}</strong></div><p>${snapshot.workflow ? `${escapeHtml(snapshot.workflow.name)} · ${relativeTime(snapshot.workflow.updatedAt)}` : "No GitHub Actions workflow detected yet."}</p></article></div><section class="panel commit-feed"><header><div><span class="panel-kicker">RECENT ACTIVITY</span><h2>Latest commits</h2></div><span>UPDATED ${relativeTime(snapshot.fetchedAt)}</span></header>${snapshot.commits.map(commit => `<a href="${commit.url}" target="_blank" rel="noreferrer" class="commit-row"><code>${escapeHtml(commit.sha)}</code><span><b>${escapeHtml(commit.message)}</b><small>${escapeHtml(commit.author)} · ${relativeTime(commit.date)}</small></span><i>↗</i></a>`).join("")}</section>`;
+  } catch (error) {
+    if (token !== renderToken || currentRoute !== "Projects") return;
+    target.innerHTML = `<div class="panel project-error"><span>GITHUB UPLINK UNAVAILABLE</span><h2>Live repository data could not be reached.</h2><p>${escapeHtml(error.message)}. Kaisen will retry when this module is reopened.</p></div>`;
+  }
 }
 
 function settingsPage(token = renderToken) {
@@ -232,6 +254,7 @@ function selectRoute(route, updateHistory = true) {
   pageName.textContent = route.toUpperCase();
   document.querySelectorAll("#nav button").forEach(button => button.classList.toggle("active", button.dataset.route === route));
   route === "Dashboard" ? dashboard() : route === "Chat" ? chatPage(token) : route === "Settings" ? settingsPage(token) : modulePage(route);
+  if (route === "Projects") hydrateProjects(token);
   document.querySelector("#sidebar").classList.remove("open");
   document.querySelector("#navScrim").classList.remove("show");
   if (updateHistory && location.hash !== `#${route.toLowerCase()}`) history.pushState({ route }, "", `#${route.toLowerCase()}`);
