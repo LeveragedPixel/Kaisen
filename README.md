@@ -12,6 +12,17 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
+## Connect AI providers
+
+Copy `.env.example` to `.env` and add one or both server-side keys:
+
+```text
+OPENAI_API_KEY=your-key
+ANTHROPIC_API_KEY=your-key
+```
+
+Never commit `.env` or place keys in browser code. Restart Kaisen after changing environment values, then choose Auto, OpenAI, or Claude under Settings → AI routing.
+
 ## Verify
 
 ```bash
