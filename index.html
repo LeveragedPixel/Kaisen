@@ -23,13 +23,14 @@
   <div class="scanlines"></div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <div class="brand"><div class="brand-mark"><span></span></div><div><strong>KAISEN</strong><small>INTELLIGENCE OS</small></div></div>
+      <button class="brand" id="homeButton" aria-label="Return to dashboard"><div class="brand-mark"><span></span></div><div><strong>KAISEN</strong><small>INTELLIGENCE OS</small></div></button>
       <nav id="nav" aria-label="Primary navigation"></nav>
       <div class="sidebar-foot">
         <div class="core-orbit"><i></i><span>LOCAL CORE</span><b>ONLINE</b></div>
         <div class="profile"><div class="avatar">LP</div><div><strong>Leveraged Pixel</strong><small>COMMANDER · LVL 01</small></div><button aria-label="Open profile menu">•••</button></div>
       </div>
     </aside>
+    <button class="nav-scrim" id="navScrim" aria-label="Close navigation"></button>
 
     <main class="workspace">
       <header class="topbar">
@@ -46,6 +47,7 @@
       <section class="page" id="page"></section>
     </main>
   </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <template id="dashboard-template">
     <div class="hero-row reveal">
@@ -99,4 +101,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-
