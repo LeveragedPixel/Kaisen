@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#071015" />
+  <meta name="description" content="Kaisen — your personal intelligence command center." />
+  <meta property="og:title" content="Kaisen · Personal Intelligence System" />
+  <meta property="og:description" content="A premium futuristic command center for markets, opportunities, communication, projects, and AI." />
+  <meta property="og:image" content="/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Kaisen · Personal Intelligence System" />
+  <meta name="twitter:description" content="A premium futuristic command center for markets, opportunities, communication, projects, and AI." />
+  <meta name="twitter:image" content="/og.png" />
+  <title>Kaisen · Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <div class="scanlines"></div>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><div class="brand-mark"><span></span></div><div><strong>KAISEN</strong><small>INTELLIGENCE OS</small></div></div>
+      <nav id="nav" aria-label="Primary navigation"></nav>
+      <div class="sidebar-foot">
+        <div class="core-orbit"><i></i><span>LOCAL CORE</span><b>ONLINE</b></div>
+        <div class="profile"><div class="avatar">LP</div><div><strong>Leveraged Pixel</strong><small>COMMANDER · LVL 01</small></div><button aria-label="Open profile menu">•••</button></div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <button class="mobile-menu" id="menuButton" aria-label="Toggle navigation">☰</button>
+        <div class="breadcrumb"><span>KAISEN</span><i>/</i><strong id="pageName">DASHBOARD</strong></div>
+        <div class="top-actions">
+          <div class="sync"><span></span> ALL SYSTEMS NOMINAL</div>
+          <button class="icon-button" aria-label="Search">⌕</button>
+          <button class="icon-button notification" aria-label="Notifications">♢<b>3</b></button>
+          <time id="clock">--:--</time>
+        </div>
+      </header>
+
+      <section class="page" id="page"></section>
+    </main>
+  </div>
+
+  <template id="dashboard-template">
+    <div class="hero-row reveal">
+      <div><div class="eyebrow"><span></span> MORNING SEQUENCE · COMPLETE</div><h1>Good morning, <em>Pixel.</em></h1><p>Your intelligence network is synced. Three signals need your attention.</p></div>
+      <div class="threat-level"><small>SYSTEM PULSE</small><strong>98.7%</strong><div class="pulse-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    </div>
+
+    <div class="briefing panel reveal delay-1">
+      <div class="panel-head"><div><span class="panel-kicker">01 / DAILY INTELLIGENCE</span><h2>Morning Kaisen Brief</h2></div><div class="live-chip"><i></i> GENERATED 07:42</div></div>
+      <div class="brief-grid">
+        <div class="brief-main"><div class="ai-glyph"><span>◈</span></div><div><p>Markets are leaning risk-on ahead of the opening bell. Your strongest remote opportunity is a <b>94% match</b> posted two hours ago. One recruiter message is waiting for a reply.</p><button class="text-button">OPEN FULL BRIEF <span>→</span></button></div></div>
+        <div class="brief-signals"><div><span>MARKET BIAS</span><b class="cyan">CAUTIOUSLY BULLISH</b></div><div><span>TOP PRIORITY</span><b>RECRUITER FOLLOW-UP</b></div><div><span>AUTOMATIONS</span><b class="green">6 / 6 ACTIVE</b></div></div>
+      </div>
+    </div>
+
+    <div class="metric-grid reveal delay-2">
+      <article class="panel market-card">
+        <div class="panel-head"><div><span class="panel-kicker">02 / MARKET CORE</span><h2>Overnight Pulse</h2></div><button class="corner-button">↗</button></div>
+        <div class="markets">
+          <div><header><span>NQ</span><b class="up">+0.42%</b></header><strong>24,775.25</strong><div class="spark"><i style="--h:35%"></i><i style="--h:42%"></i><i style="--h:38%"></i><i style="--h:55%"></i><i style="--h:50%"></i><i style="--h:66%"></i><i style="--h:61%"></i><i style="--h:83%"></i><i style="--h:77%"></i><i style="--h:92%"></i></div></div>
+          <div><header><span>ES</span><b class="up">+0.21%</b></header><strong>6,512.75</strong><div class="spark"><i style="--h:48%"></i><i style="--h:41%"></i><i style="--h:52%"></i><i style="--h:47%"></i><i style="--h:64%"></i><i style="--h:58%"></i><i style="--h:70%"></i><i style="--h:67%"></i><i style="--h:79%"></i><i style="--h:86%"></i></div></div>
+          <div><header><span>GC</span><b class="down">−0.18%</b></header><strong>3,418.60</strong><div class="spark red"><i style="--h:88%"></i><i style="--h:75%"></i><i style="--h:81%"></i><i style="--h:64%"></i><i style="--h:70%"></i><i style="--h:52%"></i><i style="--h:58%"></i><i style="--h:39%"></i><i style="--h:45%"></i><i style="--h:31%"></i></div></div>
+        </div>
+      </article>
+
+      <article class="panel opportunity-card">
+        <div class="panel-head"><div><span class="panel-kicker">03 / OPPORTUNITY SCAN</span><h2>Remote Jobs</h2></div><span class="count-chip">7 NEW</span></div>
+        <div class="match-score"><div class="score-ring"><span>94<small>%</small></span></div><div><small>TOP MATCH</small><h3>Technical Support Specialist</h3><p>Northstar Systems · Remote</p><div class="tags"><span>$31/HR</span><span>FULL TIME</span></div></div></div>
+        <div class="card-foot"><span><b>3</b> HIGH MATCHES</span><button class="text-button">VIEW SCAN →</button></div>
+      </article>
+
+      <article class="panel inbox-card">
+        <div class="panel-head"><div><span class="panel-kicker">04 / COMM LINK</span><h2>Priority Inbox</h2></div><span class="count-chip amber">2 ACTIONS</span></div>
+        <div class="message"><div class="message-icon urgent">!</div><div><strong>Interview availability</strong><p>Sarah · Apex Recruiting</p></div><time>12m</time></div>
+        <div class="message"><div class="message-icon">↗</div><div><strong>Application follow-up</strong><p>Marcus · Meridian Labs</p></div><time>1h</time></div>
+        <button class="wide-button">OPEN INBOX <span>→</span></button>
+      </article>
+
+      <article class="panel system-card">
+        <div class="panel-head"><div><span class="panel-kicker">05 / SYSTEM STATUS</span><h2>Intelligence Network</h2></div><div class="radar"><i></i></div></div>
+        <div class="systems"><div><span><i class="online"></i> LOCAL AI CORE</span><b>READY</b></div><div><span><i class="online"></i> AUTOMATION ENGINE</span><b>6 ACTIVE</b></div><div><span><i class="standby"></i> CLOUD INTELLIGENCE</span><b>STANDBY</b></div><div><span><i class="online"></i> GIT UPLINK</span><b>CONNECTED</b></div></div>
+        <div class="system-load"><span>LOCAL RESOURCE LOAD</span><div><i></i></div><b>37%</b></div>
+      </article>
+    </div>
+
+    <div class="command-bar reveal delay-3">
+      <div class="command-glyph">◈</div><input id="commandInput" aria-label="Ask Kaisen anything" placeholder="Ask Kaisen anything, or type / for commands..." /><kbd>⌘ K</kbd><button id="sendCommand">EXECUTE <span>→</span></button>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
