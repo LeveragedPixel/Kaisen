@@ -6,6 +6,7 @@ const pageName = document.querySelector("#pageName");
 let activeConversationId = null;
 let conversationCache = [];
 let currentRoute = "Dashboard";
+let renderToken = 0;
 let toastTimer;
 const defaultDisplay = { style: "hud", fontSize: "comfortable" };
 
@@ -85,9 +86,10 @@ function renderMessages(conversation) {
   return conversation.messages.map(message => `<article class="chat-message ${message.role}"><div class="message-avatar">${message.role === "assistant" ? "◈" : "LP"}</div><div><header><strong>${message.role === "assistant" ? "KAISEN" : "YOU"}</strong><span>${new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>${message.provider ? `<b>${message.provider.toUpperCase()} CORE</b>` : ""}</header><p>${escapeHtml(message.content)}</p></div></article>`).join("");
 }
 
-async function chatPage() {
+async function chatPage(token = renderToken) {
   page.innerHTML = `<div class="chat-loading">INITIALIZING CONVERSATION CORE...</div>`;
   try { await loadConversations(); } catch {}
+  if (token !== renderToken || currentRoute !== "Chat") return;
   const current = conversationCache.find(item => item.id === activeConversationId);
   page.innerHTML = `<div class="chat-layout reveal">
     <aside class="conversation-rail panel"><div class="conversation-head"><div><span class="panel-kicker">CONVERSATIONS</span><h2>Command history</h2></div><button id="newChat" aria-label="New conversation">＋</button></div><div class="conversation-list">${conversationCache.length ? conversationCache.map(item => `<button data-conversation="${item.id}" class="${item.id === activeConversationId ? "active" : ""}"><i>◇</i><span><strong>${escapeHtml(item.title)}</strong><small>${item.messages.length} SIGNALS · ${new Date(item.updatedAt).toLocaleDateString()}</small></span></button>`).join("") : `<p>NO SAVED CONVERSATIONS</p>`}</div><div class="provider-stack"><span class="panel-kicker">INTELLIGENCE ROUTER</span><div><i class="online"></i><span>AUTO</span><b>PREVIEW CORE</b></div><div><i></i><span>LOCAL</span><b>NOT CONNECTED</b></div><div><i></i><span>GPT</span><b>NOT CONNECTED</b></div><div><i></i><span>CLAUDE</span><b>NOT CONNECTED</b></div></div></aside>
@@ -97,12 +99,12 @@ async function chatPage() {
   const submit = async () => {
     const message = input.value.trim(); if (!message) return input.focus();
     input.disabled = true; document.querySelector("#chatSend").textContent = "PROCESSING";
-    try { await sendMessage(message); await chatPage(); } catch (error) { input.disabled = false; document.querySelector("#chatSend").textContent = "RETRY →"; }
+    try { await sendMessage(message); if (currentRoute === "Chat") await chatPage(renderToken); } catch (error) { input.disabled = false; document.querySelector("#chatSend").textContent = "RETRY →"; }
   };
   document.querySelector("#chatSend").addEventListener("click", submit);
   input.addEventListener("keydown", event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(); } });
-  document.querySelector("#newChat").addEventListener("click", () => { activeConversationId = null; chatPage(); });
-  document.querySelectorAll("[data-conversation]").forEach(button => button.addEventListener("click", () => { activeConversationId = button.dataset.conversation; chatPage(); }));
+  document.querySelector("#newChat").addEventListener("click", () => { activeConversationId = null; chatPage(renderToken); });
+  document.querySelectorAll("[data-conversation]").forEach(button => button.addEventListener("click", () => { activeConversationId = button.dataset.conversation; chatPage(renderToken); }));
   document.querySelectorAll(".prompt-grid button").forEach(button => button.addEventListener("click", () => { input.value = button.textContent; submit(); }));
   const stream = document.querySelector("#messageStream"); stream.scrollTop = stream.scrollHeight;
 }
@@ -162,7 +164,8 @@ function bindModuleActions(route) {
   if (reviewAll) reviewAll.addEventListener("click", () => { document.querySelectorAll(".inbox-item").forEach(item => item.classList.add("reviewed")); notify("Priority queue marked reviewed."); });
 }
 
-function settingsPage() {
+function settingsPage(token = renderToken) {
+  if (token !== renderToken || currentRoute !== "Settings") return;
   const current = loadDisplay();
   page.innerHTML = `<div class="settings-page reveal"><button class="page-back" id="settingsBack">← RETURN TO DASHBOARD</button><div class="module-hero"><span class="panel-kicker">SYSTEM CONTROL / DISPLAY</span><h1>Make Kaisen <em>yours.</em></h1><p>Choose a visual system and reading size that feels comfortable on this monitor. Changes apply instantly and stay on this device.</p></div>
     <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">01 / VISUAL SYSTEM</span><h2>Interface style</h2></div><p>Change the mood without changing how Kaisen works.</p></div><div class="style-options">
@@ -176,17 +179,20 @@ function settingsPage() {
       <button data-font="large" class="${current.fontSize === "large" ? "selected" : ""}"><span class="font-sample large">Aa</span><strong>Large</strong><small>Maximum readability</small></button>
     </div><div class="readability-preview"><span>LIVE PREVIEW</span><h3>Intelligence Network</h3><p>Kaisen is online and ready. This sample updates with your selected text size.</p></div></section>
   </div>`;
-  document.querySelectorAll("[data-style]").forEach(button => button.addEventListener("click", () => { const display = loadDisplay(); display.style = button.dataset.style; applyDisplay(display); settingsPage(); }));
-  document.querySelectorAll("[data-font]").forEach(button => button.addEventListener("click", () => { const display = loadDisplay(); display.fontSize = button.dataset.font; applyDisplay(display); settingsPage(); }));
+  document.querySelectorAll("[data-style]").forEach(button => button.addEventListener("click", () => { const display = loadDisplay(); display.style = button.dataset.style; applyDisplay(display); if (currentRoute === "Settings") settingsPage(renderToken); }));
+  document.querySelectorAll("[data-font]").forEach(button => button.addEventListener("click", () => { const display = loadDisplay(); display.fontSize = button.dataset.font; applyDisplay(display); if (currentRoute === "Settings") settingsPage(renderToken); }));
   document.querySelector("#settingsBack").addEventListener("click", () => selectRoute("Dashboard"));
 }
 
 function selectRoute(route, updateHistory = true) {
   if (!routes.includes(route)) route = "Dashboard";
   currentRoute = route;
+  const token = ++renderToken;
+  page.replaceChildren();
+  page.dataset.route = route;
   pageName.textContent = route.toUpperCase();
   document.querySelectorAll("#nav button").forEach(button => button.classList.toggle("active", button.dataset.route === route));
-  route === "Dashboard" ? dashboard() : route === "Chat" ? chatPage() : route === "Settings" ? settingsPage() : modulePage(route);
+  route === "Dashboard" ? dashboard() : route === "Chat" ? chatPage(token) : route === "Settings" ? settingsPage(token) : modulePage(route);
   document.querySelector("#sidebar").classList.remove("open");
   document.querySelector("#navScrim").classList.remove("show");
   if (updateHistory && location.hash !== `#${route.toLowerCase()}`) history.pushState({ route }, "", `#${route.toLowerCase()}`);
