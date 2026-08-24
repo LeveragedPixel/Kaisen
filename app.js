@@ -5,6 +5,8 @@ const page = document.querySelector("#page");
 const pageName = document.querySelector("#pageName");
 let activeConversationId = null;
 let conversationCache = [];
+let currentRoute = "Dashboard";
+let toastTimer;
 const defaultDisplay = { style: "hud", fontSize: "comfortable" };
 
 function loadDisplay() {
@@ -33,6 +35,18 @@ function dashboard() {
     selectRoute("Chat");
   });
   input.addEventListener("keydown", event => { if (event.key === "Enter") document.querySelector("#sendCommand").click(); });
+  document.querySelector(".briefing .text-button").addEventListener("click", () => selectRoute("Chat"));
+  document.querySelector(".market-card .corner-button").addEventListener("click", () => selectRoute("Markets"));
+  document.querySelector(".opportunity-card .text-button").addEventListener("click", () => selectRoute("Jobs"));
+  document.querySelector(".inbox-card .wide-button").addEventListener("click", () => selectRoute("Inbox"));
+}
+
+function notify(message) {
+  const toast = document.querySelector("#toast");
+  clearTimeout(toastTimer);
+  toast.textContent = message;
+  toast.classList.add("show");
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
 }
 
 const moduleCopy = {
@@ -143,11 +157,14 @@ function bindModuleActions(route) {
   document.querySelectorAll(".save-signal").forEach(button => button.addEventListener("click", () => { button.classList.toggle("saved"); button.textContent = button.classList.contains("saved") ? "◆" : "◇"; }));
   document.querySelectorAll("[data-message]").forEach(button => button.addEventListener("click", () => { const message = moduleData.Inbox[Number(button.dataset.message)]; document.querySelectorAll("[data-message]").forEach(item => item.classList.remove("selected")); button.classList.add("selected"); document.querySelector("#previewSubject").textContent = message[2]; document.querySelector("#previewBody").textContent = message[3]; }));
   document.querySelectorAll("[data-automation]").forEach(button => button.addEventListener("click", () => { button.classList.toggle("active"); button.setAttribute("aria-pressed", String(button.classList.contains("active"))); }));
+  document.querySelectorAll(".outline-action").forEach(button => button.addEventListener("click", () => notify(route === "Inbox" ? "Draft saved locally. Sending will require your approval." : "Preview refreshed. Connect a live provider when you are ready.")));
+  const reviewAll = document.querySelector(".inbox-list>header button");
+  if (reviewAll) reviewAll.addEventListener("click", () => { document.querySelectorAll(".inbox-item").forEach(item => item.classList.add("reviewed")); notify("Priority queue marked reviewed."); });
 }
 
 function settingsPage() {
   const current = loadDisplay();
-  page.innerHTML = `<div class="settings-page reveal"><div class="module-hero"><span class="panel-kicker">SYSTEM CONTROL / DISPLAY</span><h1>Make Kaisen <em>yours.</em></h1><p>Choose a visual system and reading size that feels comfortable on this monitor. Changes apply instantly and stay on this device.</p></div>
+  page.innerHTML = `<div class="settings-page reveal"><button class="page-back" id="settingsBack">← RETURN TO DASHBOARD</button><div class="module-hero"><span class="panel-kicker">SYSTEM CONTROL / DISPLAY</span><h1>Make Kaisen <em>yours.</em></h1><p>Choose a visual system and reading size that feels comfortable on this monitor. Changes apply instantly and stay on this device.</p></div>
     <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">01 / VISUAL SYSTEM</span><h2>Interface style</h2></div><p>Change the mood without changing how Kaisen works.</p></div><div class="style-options">
       <button data-style="hud" class="${current.style === "hud" ? "selected" : ""}"><div class="style-preview preview-hud"><i></i><i></i><i></i></div><strong>Full HUD</strong><span>Electric cyan · technical glow</span><b>ORIGINAL</b></button>
       <button data-style="command" class="${current.style === "command" ? "selected" : ""}"><div class="style-preview preview-command"><i></i><i></i><i></i></div><strong>Clean Command</strong><span>Graphite · quieter contrast</span><b>FOCUSED</b></button>
@@ -161,16 +178,31 @@ function settingsPage() {
   </div>`;
   document.querySelectorAll("[data-style]").forEach(button => button.addEventListener("click", () => { const display = loadDisplay(); display.style = button.dataset.style; applyDisplay(display); settingsPage(); }));
   document.querySelectorAll("[data-font]").forEach(button => button.addEventListener("click", () => { const display = loadDisplay(); display.fontSize = button.dataset.font; applyDisplay(display); settingsPage(); }));
+  document.querySelector("#settingsBack").addEventListener("click", () => selectRoute("Dashboard"));
 }
 
-function selectRoute(route) {
+function selectRoute(route, updateHistory = true) {
+  if (!routes.includes(route)) route = "Dashboard";
+  currentRoute = route;
   pageName.textContent = route.toUpperCase();
   document.querySelectorAll("#nav button").forEach(button => button.classList.toggle("active", button.dataset.route === route));
   route === "Dashboard" ? dashboard() : route === "Chat" ? chatPage() : route === "Settings" ? settingsPage() : modulePage(route);
   document.querySelector("#sidebar").classList.remove("open");
+  document.querySelector("#navScrim").classList.remove("show");
+  if (updateHistory && location.hash !== `#${route.toLowerCase()}`) history.pushState({ route }, "", `#${route.toLowerCase()}`);
+  window.scrollTo(0, 0);
 }
 
 nav.addEventListener("click", event => { const button = event.target.closest("button[data-route]"); if (button) selectRoute(button.dataset.route); });
-document.querySelector("#menuButton").addEventListener("click", () => document.querySelector("#sidebar").classList.toggle("open"));
+document.querySelector("#homeButton").addEventListener("click", () => selectRoute("Dashboard"));
+document.querySelector("#menuButton").addEventListener("click", () => { document.querySelector("#sidebar").classList.toggle("open"); document.querySelector("#navScrim").classList.toggle("show"); });
+document.querySelector("#navScrim").addEventListener("click", () => { document.querySelector("#sidebar").classList.remove("open"); document.querySelector("#navScrim").classList.remove("show"); });
+document.querySelector(".top-actions .icon-button:first-of-type").addEventListener("click", () => { selectRoute("Chat"); setTimeout(() => document.querySelector("#chatInput")?.focus(), 0); });
+document.querySelector(".notification").addEventListener("click", () => selectRoute("Inbox"));
+document.querySelector(".profile button").addEventListener("click", () => notify("Profile controls are planned for the account milestone."));
+document.addEventListener("keydown", event => { if (event.key === "Escape") { document.querySelector("#sidebar").classList.remove("open"); document.querySelector("#navScrim").classList.remove("show"); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); selectRoute("Chat"); setTimeout(() => document.querySelector("#chatInput")?.focus(), 0); } });
+window.addEventListener("popstate", () => selectRoute(routeFromHash(), false));
+window.addEventListener("hashchange", () => { if (routeFromHash() !== currentRoute) selectRoute(routeFromHash(), false); });
+function routeFromHash() { const value = location.hash.slice(1).toLowerCase(); return routes.find(route => route.toLowerCase() === value) || "Dashboard"; }
 function tick() { document.querySelector("#clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
-tick(); setInterval(tick, 1000); dashboard();
+tick(); setInterval(tick, 1000); selectRoute(routeFromHash(), false);
