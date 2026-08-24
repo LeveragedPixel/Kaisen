@@ -8,6 +8,7 @@ let conversationCache = [];
 let currentRoute = "Dashboard";
 let renderToken = 0;
 let toastTimer;
+let providerConfig = { preference: "auto", providers: { openai: { configured: false, model: "gpt-5.6" }, claude: { configured: false, model: "claude-sonnet-4-6" } } };
 const defaultDisplay = { style: "hud", fontSize: "comfortable" };
 
 function loadDisplay() {
@@ -75,8 +76,18 @@ async function loadConversations() {
   if (!activeConversationId && conversationCache.length) activeConversationId = conversationCache[0].id;
 }
 
+async function loadProviders() {
+  providerConfig = await api("/api/providers");
+  return providerConfig;
+}
+
+async function setProvider(provider) {
+  providerConfig = await api("/api/settings/provider", { method: "POST", body: JSON.stringify({ provider }) });
+  notify(`Intelligence routing set to ${provider.toUpperCase()}.`);
+}
+
 async function sendMessage(message) {
-  const data = await api("/api/chat/message", { method: "POST", body: JSON.stringify({ message, conversationId: activeConversationId }) });
+  const data = await api("/api/chat/message", { method: "POST", body: JSON.stringify({ message, conversationId: activeConversationId, provider: providerConfig.preference }) });
   activeConversationId = data.conversation.id;
   await loadConversations();
 }
@@ -88,12 +99,12 @@ function renderMessages(conversation) {
 
 async function chatPage(token = renderToken) {
   page.innerHTML = `<div class="chat-loading">INITIALIZING CONVERSATION CORE...</div>`;
-  try { await loadConversations(); } catch {}
+  try { await Promise.all([loadConversations(), loadProviders()]); } catch {}
   if (token !== renderToken || currentRoute !== "Chat") return;
   const current = conversationCache.find(item => item.id === activeConversationId);
   page.innerHTML = `<div class="chat-layout reveal">
-    <aside class="conversation-rail panel"><div class="conversation-head"><div><span class="panel-kicker">CONVERSATIONS</span><h2>Command history</h2></div><button id="newChat" aria-label="New conversation">＋</button></div><div class="conversation-list">${conversationCache.length ? conversationCache.map(item => `<button data-conversation="${item.id}" class="${item.id === activeConversationId ? "active" : ""}"><i>◇</i><span><strong>${escapeHtml(item.title)}</strong><small>${item.messages.length} SIGNALS · ${new Date(item.updatedAt).toLocaleDateString()}</small></span></button>`).join("") : `<p>NO SAVED CONVERSATIONS</p>`}</div><div class="provider-stack"><span class="panel-kicker">INTELLIGENCE ROUTER</span><div><i class="online"></i><span>AUTO</span><b>PREVIEW CORE</b></div><div><i></i><span>LOCAL</span><b>NOT CONNECTED</b></div><div><i></i><span>GPT</span><b>NOT CONNECTED</b></div><div><i></i><span>CLAUDE</span><b>NOT CONNECTED</b></div></div></aside>
-    <section class="chat-main panel"><header class="chat-top"><div><span class="panel-kicker">06 / CONVERSATION CORE</span><h2>${current ? escapeHtml(current.title) : "New intelligence channel"}</h2></div><div class="router-select"><span>ROUTE</span><button>AUTO⌄</button></div></header><div class="message-stream" id="messageStream">${renderMessages(current)}</div><div class="chat-composer"><div class="composer-tools"><button aria-label="Attach file">＋</button><button aria-label="Voice input">⌁</button></div><textarea id="chatInput" rows="1" placeholder="Message Kaisen..." aria-label="Message Kaisen"></textarea><span>PREVIEW CORE · LOCAL HISTORY</span><button id="chatSend">EXECUTE →</button></div></section>
+    <aside class="conversation-rail panel"><div class="conversation-head"><div><span class="panel-kicker">CONVERSATIONS</span><h2>Command history</h2></div><button id="newChat" aria-label="New conversation">＋</button></div><div class="conversation-list">${conversationCache.length ? conversationCache.map(item => `<button data-conversation="${item.id}" class="${item.id === activeConversationId ? "active" : ""}"><i>◇</i><span><strong>${escapeHtml(item.title)}</strong><small>${item.messages.length} SIGNALS · ${new Date(item.updatedAt).toLocaleDateString()}</small></span></button>`).join("") : `<p>NO SAVED CONVERSATIONS</p>`}</div><div class="provider-stack"><span class="panel-kicker">INTELLIGENCE ROUTER</span><div><i class="online"></i><span>AUTO</span><b>${providerConfig.providers.openai.configured || providerConfig.providers.claude.configured ? "LIVE ROUTING" : "PREVIEW FALLBACK"}</b></div><div><i class="${providerConfig.providers.openai.configured ? "online" : ""}"></i><span>OPENAI</span><b>${providerConfig.providers.openai.configured ? "CONNECTED" : "NOT CONNECTED"}</b></div><div><i class="${providerConfig.providers.claude.configured ? "online" : ""}"></i><span>CLAUDE</span><b>${providerConfig.providers.claude.configured ? "CONNECTED" : "NOT CONNECTED"}</b></div></div></aside>
+    <section class="chat-main panel"><header class="chat-top"><div><span class="panel-kicker">06 / CONVERSATION CORE</span><h2>${current ? escapeHtml(current.title) : "New intelligence channel"}</h2></div><label class="router-select"><span>ROUTE</span><select id="chatProvider" aria-label="Intelligence provider"><option value="auto">AUTO</option><option value="openai" ${providerConfig.providers.openai.configured ? "" : "disabled"}>OPENAI</option><option value="claude" ${providerConfig.providers.claude.configured ? "" : "disabled"}>CLAUDE</option></select></label></header><div class="message-stream" id="messageStream">${renderMessages(current)}</div><div class="chat-composer"><div class="composer-tools"><button aria-label="Attach file">＋</button><button aria-label="Voice input">⌁</button></div><textarea id="chatInput" rows="1" placeholder="Message Kaisen..." aria-label="Message Kaisen"></textarea><span>${providerConfig.providers.openai.configured || providerConfig.providers.claude.configured ? "LIVE CORE" : "PREVIEW CORE"} · LOCAL HISTORY</span><button id="chatSend">EXECUTE →</button></div></section>
   </div>`;
   const input = document.querySelector("#chatInput");
   const submit = async () => {
@@ -106,6 +117,7 @@ async function chatPage(token = renderToken) {
   document.querySelector("#newChat").addEventListener("click", () => { activeConversationId = null; chatPage(renderToken); });
   document.querySelectorAll("[data-conversation]").forEach(button => button.addEventListener("click", () => { activeConversationId = button.dataset.conversation; chatPage(renderToken); }));
   document.querySelectorAll(".prompt-grid button").forEach(button => button.addEventListener("click", () => { input.value = button.textContent; submit(); }));
+  const providerSelect = document.querySelector("#chatProvider"); providerSelect.value = providerConfig.preference; providerSelect.addEventListener("change", async () => { await setProvider(providerSelect.value); });
   const stream = document.querySelector("#messageStream"); stream.scrollTop = stream.scrollHeight;
 }
 
@@ -168,12 +180,13 @@ function settingsPage(token = renderToken) {
   if (token !== renderToken || currentRoute !== "Settings") return;
   const current = loadDisplay();
   page.innerHTML = `<div class="settings-page reveal"><button class="page-back" id="settingsBack">← RETURN TO DASHBOARD</button><div class="module-hero"><span class="panel-kicker">SYSTEM CONTROL / DISPLAY</span><h1>Make Kaisen <em>yours.</em></h1><p>Choose a visual system and reading size that feels comfortable on this monitor. Changes apply instantly and stay on this device.</p></div>
-    <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">01 / VISUAL SYSTEM</span><h2>Interface style</h2></div><p>Change the mood without changing how Kaisen works.</p></div><div class="style-options">
+    <section class="settings-section panel integration-settings"><div class="settings-title"><div><span class="panel-kicker">01 / INTELLIGENCE CONNECTIONS</span><h2>AI routing</h2></div><p>Keys stay on the Kaisen server and are never sent to the browser.</p></div><div class="connection-grid" id="connectionGrid"><div class="connection-card loading">CHECKING SECURE CONNECTIONS...</div></div></section>
+    <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">02 / VISUAL SYSTEM</span><h2>Interface style</h2></div><p>Change the mood without changing how Kaisen works.</p></div><div class="style-options">
       <button data-style="hud" class="${current.style === "hud" ? "selected" : ""}"><div class="style-preview preview-hud"><i></i><i></i><i></i></div><strong>Full HUD</strong><span>Electric cyan · technical glow</span><b>ORIGINAL</b></button>
       <button data-style="command" class="${current.style === "command" ? "selected" : ""}"><div class="style-preview preview-command"><i></i><i></i><i></i></div><strong>Clean Command</strong><span>Graphite · quieter contrast</span><b>FOCUSED</b></button>
       <button data-style="midnight" class="${current.style === "midnight" ? "selected" : ""}"><div class="style-preview preview-midnight"><i></i><i></i><i></i></div><strong>Midnight</strong><span>Violet blue · cinematic depth</span><b>ALT</b></button>
     </div></section>
-    <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">02 / READABILITY</span><h2>Text size</h2></div><p>Comfortable is now the recommended default for smaller monitors.</p></div><div class="font-options">
+    <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">03 / READABILITY</span><h2>Text size</h2></div><p>Comfortable is now the recommended default for smaller monitors.</p></div><div class="font-options">
       <button data-font="compact" class="${current.fontSize === "compact" ? "selected" : ""}"><span class="font-sample small">Aa</span><strong>Compact</strong><small>More information on screen</small></button>
       <button data-font="comfortable" class="${current.fontSize === "comfortable" ? "selected" : ""}"><span class="font-sample medium">Aa</span><strong>Comfortable</strong><small>Balanced and readable</small></button>
       <button data-font="large" class="${current.fontSize === "large" ? "selected" : ""}"><span class="font-sample large">Aa</span><strong>Large</strong><small>Maximum readability</small></button>
@@ -182,6 +195,16 @@ function settingsPage(token = renderToken) {
   document.querySelectorAll("[data-style]").forEach(button => button.addEventListener("click", () => { const display = loadDisplay(); display.style = button.dataset.style; applyDisplay(display); if (currentRoute === "Settings") settingsPage(renderToken); }));
   document.querySelectorAll("[data-font]").forEach(button => button.addEventListener("click", () => { const display = loadDisplay(); display.fontSize = button.dataset.font; applyDisplay(display); if (currentRoute === "Settings") settingsPage(renderToken); }));
   document.querySelector("#settingsBack").addEventListener("click", () => selectRoute("Dashboard"));
+  loadProviders().then(config => {
+    if (token !== renderToken || currentRoute !== "Settings") return;
+    const grid = document.querySelector("#connectionGrid");
+    grid.innerHTML = [
+      ["auto", "Automatic", "Uses OpenAI first, then Claude if available.", config.providers.openai.configured || config.providers.claude.configured, "SMART ROUTER"],
+      ["openai", "OpenAI", config.providers.openai.model, config.providers.openai.configured, "RESPONSES API"],
+      ["claude", "Claude", config.providers.claude.model, config.providers.claude.configured, "MESSAGES API"]
+    ].map(([id, name, detail, connected, label]) => `<button data-provider="${id}" ${id !== "auto" && !connected ? "disabled" : ""} class="connection-card ${config.preference === id ? "selected" : ""}"><span><i class="${connected ? "online" : ""}"></i>${label}</span><strong>${name}</strong><small>${escapeHtml(detail)}</small><b>${connected ? "CONNECTED" : id === "auto" ? "PREVIEW READY" : "ADD SERVER KEY"}</b></button>`).join("");
+    grid.querySelectorAll("[data-provider]").forEach(button => button.addEventListener("click", async () => { await setProvider(button.dataset.provider); settingsPage(renderToken); }));
+  }).catch(() => { document.querySelector("#connectionGrid").innerHTML = `<div class="connection-card error">CONNECTION STATUS UNAVAILABLE</div>`; });
 }
 
 function selectRoute(route, updateHistory = true) {
