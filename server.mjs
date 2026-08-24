@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { randomUUID } from "node:crypto";
 import { generateReply, providerStatus } from "./providers.mjs";
+import { publicBrainProfile } from "./brain.mjs";
 
 const root = new URL(".", import.meta.url).pathname.replace(/^\/(.:)/, "$1");
 const dataDir = join(root, "data");
@@ -37,6 +38,7 @@ async function body(request) {
 
 function previewReply(message) {
   const text = message.toLowerCase();
+  if (text.includes("who are you") || text.includes("are you claude") || text.includes("are you openai") || text.includes("are you chatgpt")) return "I'm Kaisen, your personal intelligence command center. This response is currently routed through Preview Core.";
   if (text.includes("job")) return "Opportunity Scan is staged. The next connection will score remote roles against your experience, compensation targets, and preferred schedule.";
   if (text.includes("market") || text.includes("nq") || text.includes("gold")) return "Market Core is staged for NQ, ES, and Gold. Live prices and economic-calendar intelligence will be connected in the Markets milestone.";
   if (text.includes("email") || text.includes("inbox")) return "Comm Link will begin read-only: prioritize messages, summarize threads, and draft replies while keeping sending behind your approval.";
@@ -46,6 +48,7 @@ function previewReply(message) {
 
 async function api(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/health") return json(response, 200, { status: "online", core: "local", persistence: "ready", providers: providerStatus(), time: new Date().toISOString() });
+  if (request.method === "GET" && url.pathname === "/api/brain") return json(response, 200, { brain: publicBrainProfile(), status: "active" });
   if (request.method === "GET" && url.pathname === "/api/providers") {
     const state = await loadState();
     return json(response, 200, { providers: providerStatus(), preference: state.settings?.provider || "auto" });
@@ -79,11 +82,11 @@ async function api(request, response, url) {
     try { generated = await generateReply(conversation.messages.map(({ role, content: messageContent }) => ({ role, content: messageContent })), preference); }
     catch (error) { providerError = error.message; }
     const reply = generated || { content: previewReply(content), provider: "preview", model: "local-preview" };
-    conversation.messages.push({ id: randomUUID(), role: "assistant", content: reply.content, provider: reply.provider, model: reply.model, createdAt: new Date().toISOString() });
+    conversation.messages.push({ id: randomUUID(), role: "assistant", identity: "Kaisen", content: reply.content, provider: reply.provider, model: reply.model, createdAt: new Date().toISOString() });
     conversation.updatedAt = new Date().toISOString();
     state.conversations.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     await saveState(state);
-    return json(response, 201, { conversation, mode: reply.provider, providerError });
+    return json(response, 201, { conversation, identity: "Kaisen", engine: reply.provider, mode: reply.provider, providerError });
   }
   if (request.method === "DELETE" && url.pathname.startsWith("/api/chat/conversations/")) {
     const id = url.pathname.split("/").pop();
