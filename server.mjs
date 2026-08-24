@@ -4,6 +4,7 @@ import { extname, join, normalize } from "node:path";
 import { randomUUID } from "node:crypto";
 import { generateReply, providerStatus } from "./providers.mjs";
 import { publicBrainProfile } from "./brain.mjs";
+import { getGitHubSnapshot, githubStatus } from "./github-provider.mjs";
 
 const root = new URL(".", import.meta.url).pathname.replace(/^\/(.:)/, "$1");
 const dataDir = join(root, "data");
@@ -49,6 +50,10 @@ function previewReply(message) {
 async function api(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/health") return json(response, 200, { status: "online", core: "local", persistence: "ready", providers: providerStatus(), time: new Date().toISOString() });
   if (request.method === "GET" && url.pathname === "/api/brain") return json(response, 200, { brain: publicBrainProfile(), status: "active" });
+  if (request.method === "GET" && url.pathname === "/api/integrations/github") {
+    try { return json(response, 200, { status: githubStatus(), snapshot: await getGitHubSnapshot() }); }
+    catch (error) { return json(response, 502, { error: error.message, status: githubStatus() }); }
+  }
   if (request.method === "GET" && url.pathname === "/api/providers") {
     const state = await loadState();
     return json(response, 200, { providers: providerStatus(), preference: state.settings?.provider || "auto" });
