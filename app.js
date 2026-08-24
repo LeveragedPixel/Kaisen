@@ -9,6 +9,7 @@ let currentRoute = "Dashboard";
 let renderToken = 0;
 let toastTimer;
 let providerConfig = { preference: "auto", providers: { openai: { configured: false, model: "gpt-5.6" }, claude: { configured: false, model: "claude-sonnet-4-6" } } };
+let brainConfig = null;
 const defaultDisplay = { style: "hud", fontSize: "comfortable" };
 
 function loadDisplay() {
@@ -79,6 +80,12 @@ async function loadConversations() {
 async function loadProviders() {
   providerConfig = await api("/api/providers");
   return providerConfig;
+}
+
+async function loadBrain() {
+  const result = await api("/api/brain");
+  brainConfig = result.brain;
+  return result;
 }
 
 async function setProvider(provider) {
@@ -182,13 +189,14 @@ function settingsPage(token = renderToken) {
   if (token !== renderToken || currentRoute !== "Settings") return;
   const current = loadDisplay();
   page.innerHTML = `<div class="settings-page reveal"><button class="page-back" id="settingsBack">← RETURN TO DASHBOARD</button><div class="module-hero"><span class="panel-kicker">SYSTEM CONTROL / DISPLAY</span><h1>Make Kaisen <em>yours.</em></h1><p>Choose a visual system and reading size that feels comfortable on this monitor. Changes apply instantly and stay on this device.</p></div>
-    <section class="settings-section panel integration-settings"><div class="settings-title"><div><span class="panel-kicker">01 / INTELLIGENCE CONNECTIONS</span><h2>AI routing</h2></div><p>Keys stay on the Kaisen server and are never sent to the browser.</p></div><div class="connection-grid" id="connectionGrid"><div class="connection-card loading">CHECKING SECURE CONNECTIONS...</div></div></section>
-    <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">02 / VISUAL SYSTEM</span><h2>Interface style</h2></div><p>Change the mood without changing how Kaisen works.</p></div><div class="style-options">
+    <section class="settings-section panel brain-settings"><div class="settings-title"><div><span class="panel-kicker">01 / KAISEN BRAIN</span><h2>Identity core</h2></div><p>One identity across every reasoning engine and connected module.</p></div><div id="brainProfile" class="brain-profile loading">INITIALIZING IDENTITY CORE...</div></section>
+    <section class="settings-section panel integration-settings"><div class="settings-title"><div><span class="panel-kicker">02 / INTELLIGENCE CONNECTIONS</span><h2>AI routing</h2></div><p>Keys stay on the Kaisen server and are never sent to the browser.</p></div><div class="connection-grid" id="connectionGrid"><div class="connection-card loading">CHECKING SECURE CONNECTIONS...</div></div></section>
+    <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">03 / VISUAL SYSTEM</span><h2>Interface style</h2></div><p>Change the mood without changing how Kaisen works.</p></div><div class="style-options">
       <button data-style="hud" class="${current.style === "hud" ? "selected" : ""}"><div class="style-preview preview-hud"><i></i><i></i><i></i></div><strong>Full HUD</strong><span>Electric cyan · technical glow</span><b>ORIGINAL</b></button>
       <button data-style="command" class="${current.style === "command" ? "selected" : ""}"><div class="style-preview preview-command"><i></i><i></i><i></i></div><strong>Clean Command</strong><span>Graphite · quieter contrast</span><b>FOCUSED</b></button>
       <button data-style="midnight" class="${current.style === "midnight" ? "selected" : ""}"><div class="style-preview preview-midnight"><i></i><i></i><i></i></div><strong>Midnight</strong><span>Violet blue · cinematic depth</span><b>ALT</b></button>
     </div></section>
-    <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">03 / READABILITY</span><h2>Text size</h2></div><p>Comfortable is now the recommended default for smaller monitors.</p></div><div class="font-options">
+    <section class="settings-section panel"><div class="settings-title"><div><span class="panel-kicker">04 / READABILITY</span><h2>Text size</h2></div><p>Comfortable is now the recommended default for smaller monitors.</p></div><div class="font-options">
       <button data-font="compact" class="${current.fontSize === "compact" ? "selected" : ""}"><span class="font-sample small">Aa</span><strong>Compact</strong><small>More information on screen</small></button>
       <button data-font="comfortable" class="${current.fontSize === "comfortable" ? "selected" : ""}"><span class="font-sample medium">Aa</span><strong>Comfortable</strong><small>Balanced and readable</small></button>
       <button data-font="large" class="${current.fontSize === "large" ? "selected" : ""}"><span class="font-sample large">Aa</span><strong>Large</strong><small>Maximum readability</small></button>
@@ -207,6 +215,12 @@ function settingsPage(token = renderToken) {
     ].map(([id, name, detail, connected, label]) => `<button data-provider="${id}" ${id !== "auto" && !connected ? "disabled" : ""} class="connection-card ${config.preference === id ? "selected" : ""}"><span><i class="${connected ? "online" : ""}"></i>${label}</span><strong>${name}</strong><small>${escapeHtml(detail)}</small><b>${connected ? "KEY CONFIGURED" : id === "auto" ? "PREVIEW READY" : "ADD SERVER KEY"}</b></button>`).join("");
     grid.querySelectorAll("[data-provider]").forEach(button => button.addEventListener("click", async () => { await setProvider(button.dataset.provider); settingsPage(renderToken); }));
   }).catch(() => { document.querySelector("#connectionGrid").innerHTML = `<div class="connection-card error">CONNECTION STATUS UNAVAILABLE</div>`; });
+  loadBrain().then(result => {
+    if (token !== renderToken || currentRoute !== "Settings") return;
+    const brain = result.brain;
+    document.querySelector("#brainProfile").className = "brain-profile";
+    document.querySelector("#brainProfile").innerHTML = `<div class="brain-mark"><i></i><span>◈</span></div><div><span class="panel-kicker">ACTIVE · VERSION ${escapeHtml(brain.version)}</span><h3>${escapeHtml(brain.name)} · ${escapeHtml(brain.philosophy)}</h3><p>${escapeHtml(brain.mission)}</p><div class="brain-loop"><span>OBSERVE</span><i>→</i><span>UNDERSTAND</span><i>→</i><span>DECIDE</span><i>→</i><span>ACT</span><i>→</i><span>MEASURE</span><i>→</i><span>IMPROVE</span></div></div>`;
+  }).catch(() => { document.querySelector("#brainProfile").textContent = "IDENTITY CORE UNAVAILABLE"; });
 }
 
 function selectRoute(route, updateHistory = true) {
@@ -237,4 +251,3 @@ window.addEventListener("hashchange", () => { if (routeFromHash() !== currentRou
 function routeFromHash() { const value = location.hash.slice(1).toLowerCase(); return routes.find(route => route.toLowerCase() === value) || "Dashboard"; }
 function tick() { document.querySelector("#clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
 tick(); setInterval(tick, 1000); selectRoute(routeFromHash(), false);
-
