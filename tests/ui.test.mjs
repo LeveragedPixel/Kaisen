@@ -10,8 +10,8 @@ test("every primary route has a render path", () => {
     assert.match(app, new RegExp(`\\b${route}\\b`));
   }
   assert.match(app, /route === "Dashboard" \? dashboard\(\)/);
-  assert.match(app, /route === "Chat" \? chatPage\(\)/);
-  assert.match(app, /route === "Settings" \? settingsPage\(\)/);
+  assert.match(app, /route === "Chat" \? chatPage\(token\)/);
+  assert.match(app, /route === "Settings" \? settingsPage\(token\)/);
 });
 
 test("settings always exposes an exit and navigation supports history", () => {
@@ -20,6 +20,14 @@ test("settings always exposes an exit and navigation supports history", () => {
   assert.match(app, /history\.pushState/);
   assert.match(app, /popstate/);
   assert.match(html, /id="homeButton"/);
+  assert.match(app, /page\.replaceChildren\(\)/);
+  assert.match(app, /page\.dataset\.route = route/);
+  assert.match(app, /currentRoute !== "Settings"/);
+});
+
+test("asynchronous screens cannot overwrite a newer route", () => {
+  assert.match(app, /token !== renderToken \|\| currentRoute !== "Chat"/);
+  assert.match(app, /const token = \+\+renderToken/);
 });
 
 test("mobile navigation has close controls", () => {
