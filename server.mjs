@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { randomUUID } from "node:crypto";
+import { generateReply, providerStatus } from "./providers.mjs";
 
 const root = new URL(".", import.meta.url).pathname.replace(/^\/(.:)/, "$1");
 const dataDir = join(root, "data");
@@ -34,10 +35,6 @@ async function body(request) {
   return raw ? JSON.parse(raw) : {};
 }
 
-function configuredProviders() {
-  return { local: Boolean(process.env.OLLAMA_URL), openai: Boolean(process.env.OPENAI_API_KEY), claude: Boolean(process.env.ANTHROPIC_API_KEY) };
-}
-
 function previewReply(message) {
   const text = message.toLowerCase();
   if (text.includes("job")) return "Opportunity Scan is staged. The next connection will score remote roles against your experience, compensation targets, and preferred schedule.";
@@ -48,7 +45,19 @@ function previewReply(message) {
 }
 
 async function api(request, response, url) {
-  if (request.method === "GET" && url.pathname === "/api/health") return json(response, 200, { status: "online", core: "local", persistence: "ready", providers: configuredProviders(), time: new Date().toISOString() });
+  if (request.method === "GET" && url.pathname === "/api/health") return json(response, 200, { status: "online", core: "local", persistence: "ready", providers: providerStatus(), time: new Date().toISOString() });
+  if (request.method === "GET" && url.pathname === "/api/providers") {
+    const state = await loadState();
+    return json(response, 200, { providers: providerStatus(), preference: state.settings?.provider || "auto" });
+  }
+  if (request.method === "POST" && url.pathname === "/api/settings/provider") {
+    const payload = await body(request);
+    if (!["auto", "openai", "claude"].includes(payload.provider)) return json(response, 400, { error: "Invalid provider" });
+    const state = await loadState();
+    state.settings = { ...defaultState.settings, ...state.settings, provider: payload.provider };
+    await saveState(state);
+    return json(response, 200, { preference: payload.provider, providers: providerStatus() });
+  }
   if (request.method === "GET" && url.pathname === "/api/chat/conversations") {
     const state = await loadState();
     return json(response, 200, { conversations: state.conversations });
@@ -64,11 +73,17 @@ async function api(request, response, url) {
       state.conversations.unshift(conversation);
     }
     conversation.messages.push({ id: randomUUID(), role: "user", content, createdAt: new Date().toISOString() });
-    conversation.messages.push({ id: randomUUID(), role: "assistant", content: previewReply(content), provider: "preview", createdAt: new Date().toISOString() });
+    const preference = ["auto", "openai", "claude"].includes(payload.provider) ? payload.provider : state.settings?.provider || "auto";
+    let generated;
+    let providerError;
+    try { generated = await generateReply(conversation.messages.map(({ role, content: messageContent }) => ({ role, content: messageContent })), preference); }
+    catch (error) { providerError = error.message; }
+    const reply = generated || { content: previewReply(content), provider: "preview", model: "local-preview" };
+    conversation.messages.push({ id: randomUUID(), role: "assistant", content: reply.content, provider: reply.provider, model: reply.model, createdAt: new Date().toISOString() });
     conversation.updatedAt = new Date().toISOString();
     state.conversations.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     await saveState(state);
-    return json(response, 201, { conversation, mode: "preview" });
+    return json(response, 201, { conversation, mode: reply.provider, providerError });
   }
   if (request.method === "DELETE" && url.pathname.startsWith("/api/chat/conversations/")) {
     const id = url.pathname.split("/").pop();
@@ -87,7 +102,7 @@ createServer(async (request, response) => {
     const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
     const safePath = normalize(requested).replace(/^(\.\.[/\\])+/, "");
     const file = await readFile(join(root, safePath));
-    response.writeHead(200, { "content-type": `${types[extname(safePath)] || "application/octet-stream"}; charset=utf-8` });
+    response.writeHead(200, { "content-type": `${types[extname(safePath)] || "application/octet-stream"}; charset=utf-8`, "cache-control": "no-store" });
     response.end(file);
   } catch (error) {
     if (request.url.startsWith("/api/")) return json(response, 500, { error: error.message || "Kaisen Core error" });
@@ -96,4 +111,3 @@ createServer(async (request, response) => {
     response.end(file);
   }
 }).listen(port, "127.0.0.1", () => console.log(`Kaisen Core online at http://127.0.0.1:${port}`));
-
