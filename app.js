@@ -95,8 +95,54 @@ async function chatPage() {
 
 function modulePage(route) {
   const [kicker, title, description, stats] = moduleCopy[route];
-  page.innerHTML = `<div class="module-page reveal"><div class="module-hero"><span class="panel-kicker">${kicker}</span><h1>${title}</h1><p>${description}</p></div><div class="module-stats">${stats.map((stat, i) => `<div><span>0${i + 1}</span><strong>${stat}</strong></div>`).join("")}</div><div class="panel module-stage"><div class="stage-orbit"><i></i><b>${icons[route]}</b></div><span>${route.toUpperCase()} MODULE</span><h2>Interface channel established</h2><p>This module is staged for the next Kaisen milestone. The application shell and navigation are operational.</p><button class="wide-button" data-dashboard>RETURN TO COMMAND CENTER →</button></div></div>`;
-  document.querySelector("[data-dashboard]").addEventListener("click", () => selectRoute("Dashboard"));
+  page.innerHTML = `<div class="module-page operational reveal"><div class="module-hero module-heading"><div><span class="panel-kicker">${kicker}</span><h1>${title}</h1><p>${description}</p></div><span class="local-badge"><i></i> LOCAL PREVIEW DATA</span></div><div class="module-stats">${stats.map((stat, i) => `<div><span>0${i + 1}</span><strong>${stat}</strong></div>`).join("")}</div>${moduleContent(route)}</div>`;
+  bindModuleActions(route);
+}
+
+const moduleData = {
+  Jobs: [
+    ["94", "Technical Support Specialist", "Northstar Systems", "$31/HR", "2H AGO", "Remote · Full time"],
+    ["89", "Customer Success Engineer", "Meridian Labs", "$78K–$92K", "5H AGO", "Remote · Mountain time"],
+    ["84", "Implementation Specialist", "Apex Cloud", "$72K–$86K", "1D AGO", "Remote · US"]
+  ],
+  Markets: [
+    ["NQ", "24,775.25", "+0.42%", "24,690", "24,840", "Cautiously bullish"],
+    ["ES", "6,512.75", "+0.21%", "6,488", "6,528", "Balanced / bullish"],
+    ["GC", "3,418.60", "−0.18%", "3,402", "3,436", "Range compression"]
+  ],
+  Inbox: [
+    ["Sarah Chen", "Apex Recruiting", "Interview availability", "Can you share two windows that work this week?", "12 MIN", "urgent"],
+    ["Marcus Reed", "Meridian Labs", "Application follow-up", "The team would like to move you to the next stage.", "1 HOUR", "priority"],
+    ["GitHub", "Kaisen", "Repository connected", "Your command center is now publishing successfully.", "TODAY", "system"]
+  ],
+  Projects: [
+    ["Kaisen", "Personal intelligence command center", "MAIN", "PASSING", "3 MILESTONES", "82"],
+    ["Leveraged Pixel Studios", "Studio website and deployment", "PLANNING", "READY", "DOMAIN CONNECTED", "35"],
+    ["Trading Systems", "Indicators, research, and automation", "ACTIVE", "LOCAL", "2 MODULES", "56"]
+  ],
+  Automations: [
+    ["Morning intelligence brief", "Every weekday · 07:30", "NEXT 07:30", true],
+    ["Remote opportunity scan", "Every 4 hours", "NEXT 12:00", true],
+    ["Market opening prep", "Weekdays · 07:00", "NEXT MON", true],
+    ["Priority inbox sweep", "Every 2 hours", "NEXT 10:00", true],
+    ["Repository health check", "On every push", "EVENT DRIVEN", true],
+    ["Weekly system review", "Sunday · 18:00", "NEXT SUN", true]
+  ]
+};
+
+function moduleContent(route) {
+  if (route === "Jobs") return `<section class="module-toolbar"><div class="segmented"><button class="active">BEST MATCH</button><button>NEWEST</button><button>SAVED</button></div><button class="outline-action">SCAN OPPORTUNITIES ↗</button></section><div class="data-stack">${moduleData.Jobs.map((job, index) => `<article class="panel job-row"><div class="fit-score"><strong>${job[0]}</strong><small>% FIT</small></div><div class="data-primary"><span>${index === 0 ? "TOP SIGNAL" : "QUALIFIED MATCH"}</span><h2>${job[1]}</h2><p>${job[2]} · ${job[5]}</p></div><div class="data-meta"><b>${job[3]}</b><small>${job[4]}</small></div><button class="save-signal" aria-label="Save ${job[1]}">◇</button></article>`).join("")}</div>`;
+  if (route === "Markets") return `<div class="market-board">${moduleData.Markets.map(market => `<article class="panel market-tile"><header><span>${market[0]} / FUTURES</span><b class="${market[2].startsWith("+") ? "up" : "down"}">${market[2]}</b></header><h2>${market[1]}</h2><div class="market-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><dl><div><dt>SUPPORT</dt><dd>${market[3]}</dd></div><div><dt>RESISTANCE</dt><dd>${market[4]}</dd></div></dl><footer><i></i>${market[5]}</footer></article>`).join("")}</div><section class="panel intelligence-strip"><span class="panel-kicker">SESSION INTELLIGENCE</span><h2>Opening conditions favor patience above momentum.</h2><p>Preview levels are illustrative until a live market-data provider is connected. Kaisen will keep analysis and execution clearly separated.</p></section>`;
+  if (route === "Inbox") return `<div class="inbox-layout"><section class="panel inbox-list"><header><span class="panel-kicker">PRIORITY QUEUE</span><button>MARK ALL REVIEWED</button></header>${moduleData.Inbox.map((message, index) => `<button class="inbox-item ${index === 0 ? "selected" : ""}" data-message="${index}"><span class="sender-mark">${message[0].split(" ").map(n => n[0]).join("").slice(0,2)}</span><span><b>${message[2]}</b><small>${message[0]} · ${message[1]}</small><p>${message[3]}</p></span><time>${message[4]}</time></button>`).join("")}</section><section class="panel message-preview"><span class="panel-kicker">SELECTED TRANSMISSION</span><h2 id="previewSubject">${moduleData.Inbox[0][2]}</h2><p id="previewBody">${moduleData.Inbox[0][3]}</p><textarea aria-label="Draft response" placeholder="Draft a response..."></textarea><button class="outline-action">PREPARE RESPONSE →</button></section></div>`;
+  if (route === "Projects") return `<div class="project-grid">${moduleData.Projects.map(project => `<article class="panel project-card"><header><span class="project-icon">▱</span><span>${project[2]}</span></header><h2>${project[0]}</h2><p>${project[1]}</p><div class="progress"><i style="width:${project[5]}%"></i></div><div class="project-status"><span><i></i>${project[3]}</span><b>${project[4]}</b></div></article>`).join("")}</div>`;
+  return `<div class="automation-list">${moduleData.Automations.map((automation, index) => `<article class="panel automation-row"><span class="automation-icon">ϟ</span><div><h2>${automation[0]}</h2><p>${automation[1]}</p></div><b>${automation[2]}</b><button class="toggle active" data-automation="${index}" aria-label="Toggle ${automation[0]}" aria-pressed="true"><i></i></button></article>`).join("")}</div>`;
+}
+
+function bindModuleActions(route) {
+  document.querySelectorAll(".segmented button").forEach(button => button.addEventListener("click", () => { document.querySelectorAll(".segmented button").forEach(item => item.classList.remove("active")); button.classList.add("active"); }));
+  document.querySelectorAll(".save-signal").forEach(button => button.addEventListener("click", () => { button.classList.toggle("saved"); button.textContent = button.classList.contains("saved") ? "◆" : "◇"; }));
+  document.querySelectorAll("[data-message]").forEach(button => button.addEventListener("click", () => { const message = moduleData.Inbox[Number(button.dataset.message)]; document.querySelectorAll("[data-message]").forEach(item => item.classList.remove("selected")); button.classList.add("selected"); document.querySelector("#previewSubject").textContent = message[2]; document.querySelector("#previewBody").textContent = message[3]; }));
+  document.querySelectorAll("[data-automation]").forEach(button => button.addEventListener("click", () => { button.classList.toggle("active"); button.setAttribute("aria-pressed", String(button.classList.contains("active"))); }));
 }
 
 function settingsPage() {
@@ -128,4 +174,3 @@ nav.addEventListener("click", event => { const button = event.target.closest("bu
 document.querySelector("#menuButton").addEventListener("click", () => document.querySelector("#sidebar").classList.toggle("open"));
 function tick() { document.querySelector("#clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
 tick(); setInterval(tick, 1000); dashboard();
-
