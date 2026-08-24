@@ -44,6 +44,12 @@ test("settings presents the Kaisen continuous improvement brain", () => {
   assert.match(app, /IMPROVE/);
 });
 
+test("projects hydrate from the live GitHub integration", () => {
+  assert.match(app, /\/api\/integrations\/github/);
+  assert.match(app, /LIVE GITHUB REPOSITORY/);
+  assert.match(app, /hydrateProjects\(token\)/);
+});
+
 test("mobile navigation has close controls", () => {
   assert.match(html, /id="navScrim"/);
   assert.match(app, /#navScrim/);
