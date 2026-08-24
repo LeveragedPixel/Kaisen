@@ -1,4 +1,4 @@
-const systemPrompt = "You are Kaisen, a concise personal intelligence command center. Be practical, accurate, and explicit when information is preview data or unavailable.";
+import { buildBrainPrompt } from "./brain.mjs";
 
 export function providerStatus() {
   return {
@@ -20,7 +20,7 @@ async function openai(messages) {
   const payload = await request("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "content-type": "application/json" },
-    body: JSON.stringify({ model: process.env.OPENAI_MODEL || "gpt-5.6", instructions: systemPrompt, input: messages, reasoning: { effort: process.env.OPENAI_REASONING || "medium" }, max_output_tokens: 1600 })
+    body: JSON.stringify({ model: process.env.OPENAI_MODEL || "gpt-5.6", instructions: buildBrainPrompt("openai"), input: messages, reasoning: { effort: process.env.OPENAI_REASONING || "medium" }, max_output_tokens: 1600 })
   });
   const content = payload.output?.flatMap(item => item.content || []).find(item => item.type === "output_text");
   if (!content?.text) throw new Error("OpenAI returned no text response");
@@ -31,7 +31,7 @@ async function claude(messages) {
   const payload = await request("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6", system: systemPrompt, messages, max_tokens: 1600 })
+    body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6", system: buildBrainPrompt("claude"), messages, max_tokens: 1600 })
   });
   const content = payload.content?.find(item => item.type === "text")?.text;
   if (!content) throw new Error("Claude returned no text response");
