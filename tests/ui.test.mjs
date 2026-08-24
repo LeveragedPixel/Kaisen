@@ -37,6 +37,13 @@ test("chat and settings expose secure provider routing", () => {
   assert.match(app, /Keys stay on the Kaisen server/);
 });
 
+test("settings presents the Kaisen continuous improvement brain", () => {
+  assert.match(app, /\/api\/brain/);
+  assert.match(app, /KAISEN BRAIN/);
+  assert.match(app, /OBSERVE/);
+  assert.match(app, /IMPROVE/);
+});
+
 test("mobile navigation has close controls", () => {
   assert.match(html, /id="navScrim"/);
   assert.match(app, /#navScrim/);
