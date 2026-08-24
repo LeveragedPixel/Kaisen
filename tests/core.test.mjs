@@ -20,6 +20,18 @@ test("health reports an online local core", async () => {
   const health = await (await fetch(`http://127.0.0.1:${port}/api/health`)).json();
   assert.equal(health.status, "online");
   assert.equal(health.persistence, "ready");
+  assert.equal(typeof health.providers.openai.configured, "boolean");
+  assert.equal(typeof health.providers.claude.configured, "boolean");
+  assert.equal(JSON.stringify(health).includes("API_KEY"), false);
+});
+
+test("provider routing can be inspected and changed without exposing secrets", async () => {
+  const initial = await (await fetch(`http://127.0.0.1:${port}/api/providers`)).json();
+  assert.ok(initial.providers.openai.model);
+  assert.ok(initial.providers.claude.model);
+  assert.equal("key" in initial.providers.openai, false);
+  const changed = await (await fetch(`http://127.0.0.1:${port}/api/settings/provider`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ provider: "auto" }) })).json();
+  assert.equal(changed.preference, "auto");
 });
 
 test("chat creates and persists a conversation", async () => {
@@ -29,4 +41,3 @@ test("chat creates and persists a conversation", async () => {
   const saved = await (await fetch(`http://127.0.0.1:${port}/api/chat/conversations`)).json();
   assert.ok(saved.conversations.some(item => item.id === result.conversation.id));
 });
-
