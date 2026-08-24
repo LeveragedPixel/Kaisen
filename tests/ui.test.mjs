@@ -30,6 +30,13 @@ test("asynchronous screens cannot overwrite a newer route", () => {
   assert.match(app, /const token = \+\+renderToken/);
 });
 
+test("chat and settings expose secure provider routing", () => {
+  assert.match(app, /\/api\/providers/);
+  assert.match(app, /\/api\/settings\/provider/);
+  assert.match(app, /id="chatProvider"/);
+  assert.match(app, /Keys stay on the Kaisen server/);
+});
+
 test("mobile navigation has close controls", () => {
   assert.match(html, /id="navScrim"/);
   assert.match(app, /#navScrim/);
